@@ -14,15 +14,19 @@ export MLFLOW_PORT=5001
 sudo ./install.sh
 ```
 
-3. Start your MLflow service with
+3. Finally, use the enable command to ensure that the service starts whenever the system boots
 ```
-systemctl start docker-compose@mlflow
+systemctl enable mlflow
+```
+4. Start your MLflow service if not on
+```
+systemctl start mlflow
 ```
 
-4. You can reach
+5. You can reach
 - Mlflow UI at [127.0.0.1:5001](http://127.0.0.1:5001) or any other port number you chose
 - database at [127.0.0.1:5432](http://127.0.0.1:5432) or any other port number you chose
-5. You will need to do a port forward if deploying to a remote server
+6. You will need to do a port forward if deploying to a remote server
 
 **Links**
 - [MLflow docs](https://mlflow.org/docs/latest/index.html)
