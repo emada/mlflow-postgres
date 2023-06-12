@@ -1,22 +1,20 @@
 [Unit]
-Description=MLflow service with docker compose
+Description=MLflow service
 PartOf=docker.service
 After=docker.service
 
 [Service]
-Type=oneshot
-RemainAfterExit=true
+Type=simple
 WorkingDirectory=/etc/docker/compose/mlflow
 
 # Remove old containers, images and volumes
-ExecStartPre=/usr/bin/docker compose down
+ExecStartPre=/usr/bin/docker compose down --volumes
 ExecStartPre=/usr/bin/docker compose rm -f
-ExecStartPre=-/bin/bash -c 'docker network ls -qf "name=mlflow_" | xargs docker network rm'
-ExecStartPre=-/bin/bash -c 'docker ps -aqf "name=mlflow_*" | xargs docker rm'
 
 LoadCredential=.env:/etc/docker/compose/mlflow/.env
-ExecStart=/usr/bin/docker compose --env-file=${CREDENTIALS_DIRECTORY}/.env up -d --remove-orphans
+ExecStart=/usr/bin/docker compose --env-file=${CREDENTIALS_DIRECTORY}/.env up --remove-orphans
 ExecStop=/usr/bin/docker compose down
+ExecReload=/usr/bin/docker compose restart
 
 [Install]
 WantedBy=multi-user.target
