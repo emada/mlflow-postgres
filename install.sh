@@ -18,3 +18,5 @@ systemctl daemon-reload
 echo "MLflow service successfully installed!"
 echo "You can now delete this installation folder including the .env file."
 echo "Use 'systemctl start mlflow' to start MLflow"
+echo "It'll take a while to load the service as the system will pull and build images"
+echo "Use 'systemctl status mlflow' to see its status"

@@ -1,57 +1,83 @@
-version: '3.3'
+version: "3"
 
 services:
-  db:
+  mlflow:
+    build:
+      context: .
+      dockerfile: mlflow.Dockerfile
     restart: unless-stopped
-    image: postgres:latest
-    container_name: mlflow_db
-    expose:
-      - ${DB_PORT}
     networks:
       - mlflow_network
     ports:
-      - "${DB_PORT}:${DB_PORT}"
+      - ${MLFLOW_PORT}:5000
+    environment:
+      - BACKEND_URI=postgresql://${DB_USER}:${DB_PW}@db:${DB_PORT}/${DB_NAME}
+      - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
+      - DEFAULT_ARTIFACT_ROOT=${DEFAULT_ARTIFACT_ROOT}
+      - AWS_ACCESS_KEY_ID=${S3_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${S3_SECRET_ACCESS_KEY}
+    depends_on:
+      - db
+      - minio
+    command:
+      - sh   # (sh allows for var substitution of BACKEND_URI)
+      - -c
+      - mlflow server
+        --host 0.0.0.0
+        --port 5000
+        --backend-store-uri $${BACKEND_URI}
+        --artifacts-destination ${DEFAULT_ARTIFACT_ROOT}
+        --gunicorn-opts "--timeout 180 --log-level debug --access-logfile -"
+
+  db:
+    image: postgres:latest
+    restart: unless-stopped
+    networks:
+      - mlflow_network
+    ports:
+      - ${DB_PORT}:5432
     environment:
       - POSTGRES_DB=${DB_NAME}
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PW}
     volumes:
-      - ${DB_PATH}:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
 
-  app:
+  minio:
+    image: quay.io/minio/minio
     restart: unless-stopped
-    image: mlflow:latest
-    build:
-      context: .
-      dockerfile: mlflow.Dockerfile
-    container_name: mlflow_server
     networks:
       - mlflow_network
     expose:
-      - ${MLFLOW_PORT}
+      - 9000
     ports:
-      - "${MLFLOW_PORT}:5000"
+      - ${MINIO_PORT}:9090
     environment:
-      - BACKEND=postgresql://${DB_USER}:${DB_PW}@db:${DB_PORT}/${DB_NAME}
-      # - ARTIFACT_PATH=${ARTIFACT_PATH}
-      # For artifact store in AWS S3 (note boto was installed in container):
-      #  - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      #  - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      #  - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
-      #  - ARTIFACTS="s3://mlflow_bucket/mlflow/"
-    command:
-      - sh   # (sh allows for var substitution of BACKEND)
-      - -c
-      - mlflow server 
-        --host 0.0.0.0 
-        --port 5000 
-        --backend-store-uri $${BACKEND}
-        --no-serve-artifacts
-        --default-artifact-root ${ARTIFACT_PATH}
-        --gunicorn-opts "--timeout 180 --log-level debug --access-logfile -"
+      - MINIO_ROOT_USER=${S3_ACCESS_KEY_ID}
+      - MINIO_ROOT_PASSWORD=${S3_SECRET_ACCESS_KEY}
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9090"
+
+  # Automatically create a default bucket when the container starts
+  defaultbucket:
+    image: minio/mc
+    networks:
+      - mlflow_network
     depends_on:
-      - db
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+        until (/usr/bin/mc alias set minio http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD}) do echo 'try to create buckets...' && sleep 1; done;
+        /usr/bin/mc mb minio/${MINIO_MLFLOW_BUCKET};
+        /usr/bin/mc anonymous list minio/${MINIO_MLFLOW_BUCKET};
+        exit 0;
+      "
 
 networks:
   mlflow_network:
     driver: bridge
+
+volumes:
+  postgres_data:
+  minio_data:
