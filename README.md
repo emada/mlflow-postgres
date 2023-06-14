@@ -1,48 +1,27 @@
 # MLflow tracking server with Postgres and MinIO backend for Ubuntu 22.04
 
-**How to use**
-1. Create a .env file containing the environment variables like below
-```
-export DB_NAME=mlflowdb
-export DB_USER=postgres
-export DB_PW=<your_password>
-export DB_PORT=5432
-export MLFLOW_PORT=5001
-```
+## How to use
+Create a *.env* file containing the needed environment variables. You can use *sample.env* as a starting point.
 
-docker-compose up -d
-on MinIO create a bucket named mlflow-artifacts. It is possible in the browser, at 127.0.0.1:9000 (you need it once, then it will be saved in volume)
-when accessing MLflow from python, you need to define environment variables:
-    MLFLOW_S3_ENDPOINT_URL=http://127.0.0.1:9000
-    ARTIFACT_ROOT=s3://mlflow-artifacts/
-    AWS_ACCESS_KEY_ID=mlflow_access_key
-    AWS_SECRET_ACCESS_KEY=mlflow_secret_key
-
-
-2. Install the MLflow service using
+Install the MLflow service using
 ```
 sudo ./install.sh
 ```
+The installer will start the MLlfow service and make sure it starts whenever the system boots, with `systemctl enable mlflow`. The first time the service runs it will pull and build the necessary docker images. Therefore it will take a couple of minutes to start.
 
-3. Finally, use the enable command to ensure that the service starts whenever the system boots
-```
-systemctl enable mlflow
-```
-4. Start your MLflow service if not on
-```
-systemctl start mlflow
-```
+If you keep the default port numbers you can reach
+- Mlflow UI at [127.0.0.1:5000](http://127.0.0.1:5000)
+- Postgres at [127.0.0.1:5432](http://127.0.0.1:5432)
+- MinIO UI at [127.0.0.1:19090](http://127.0.0.1:19090)
 
-5. You can reach
-- Mlflow UI at [127.0.0.1:5001](http://127.0.0.1:5001) or any other port number you chose
-- database at [127.0.0.1:5432](http://127.0.0.1:5432) or any other port number you chose
-6. You will need to do a port forward if deploying to a remote server
+You may need to do a port forward if deploying to a remote server
 
-**Links**
-- [MLflow docs](https://mlflow.org/docs/latest/index.html)
-- [PostgreSQL on DockerHub](https://hub.docker.com/_/postgres)
+## Links
+- [MLflow 2.4.1 docs](https://mlflow.org/docs/2.4.1/index.html)
+- [PostgreSQL 15 docs](https://www.postgresql.org/docs/15/index.html)
+- [MinIO docs](https://min.io/docs/minio/container/index.html)
 
-**Inspired by**
+## Inspired by
 - https://github.com/bubulmet/mlflow-postgres-minio/tree/main
 - https://github.com/ekity1002/docker-mlflow-postgres-minio
 - https://gist.github.com/mosquito/b23e1c1e5723a7fd9e6568e5cf91180f

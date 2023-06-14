@@ -30,7 +30,7 @@ services:
         --gunicorn-opts "--timeout 180 --log-level debug --access-logfile -"
 
   db:
-    image: postgres:latest
+    image: postgres:15-bullseye
     restart: unless-stopped
     networks:
       - mlflow_network
@@ -44,7 +44,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
   minio:
-    image: quay.io/minio/minio
+    image: quay.io/minio/minio:RELEASE.2023-06-09T07-32-12Z
     restart: unless-stopped
     networks:
       - mlflow_network
@@ -61,7 +61,7 @@ services:
 
   # Automatically create a default bucket when the container starts
   defaultbucket:
-    image: minio/mc
+    image: minio/mc:RELEASE.2023-06-06T13-48-56Z
     networks:
       - mlflow_network
     depends_on:

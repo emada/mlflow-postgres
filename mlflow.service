@@ -7,13 +7,10 @@ After=docker.service
 Type=simple
 WorkingDirectory=/etc/docker/compose/mlflow
 
-# Remove old containers, images and volumes
-ExecStartPre=/usr/bin/docker compose down --volumes
-ExecStartPre=/usr/bin/docker compose rm -f
-
+ExecStartPre=/usr/bin/docker compose down
 LoadCredential=.env:/etc/docker/compose/mlflow/.env
 ExecStart=/usr/bin/docker compose --env-file=${CREDENTIALS_DIRECTORY}/.env up --remove-orphans
-ExecStop=/usr/bin/docker compose stop
+ExecStop=/usr/bin/docker compose down
 ExecReload=/usr/bin/docker compose restart
 
 [Install]
