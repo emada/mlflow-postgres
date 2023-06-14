@@ -1,4 +1,4 @@
-# MLflow tracking server with Postgres and MinIO backend for Ubuntu 22.04
+# MLflow tracking server with Postgres and MinIO backend
 
 ## How to use
 Create a *.env* file containing the needed environment variables. You can use *sample.env* as a starting point.
