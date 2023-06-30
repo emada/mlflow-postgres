@@ -11,23 +11,29 @@ services:
     ports:
       - ${MLFLOW_PORT}:5000
     environment:
-      - BACKEND_URI=postgresql://${DB_USER}:${DB_PW}@db:${DB_PORT}/${DB_NAME}
-      - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
-      - DEFAULT_ARTIFACT_ROOT=${DEFAULT_ARTIFACT_ROOT}
-      - AWS_ACCESS_KEY_ID=${S3_ACCESS_KEY_ID}
-      - AWS_SECRET_ACCESS_KEY=${S3_SECRET_ACCESS_KEY}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - MLFLOW_S3_ENDPOINT_URL=http://s3:9000
     depends_on:
-      - db
-      - minio
+      db:
+        condition: service_healthy
+      s3:
+        condition: service_healthy
     command:
-      - sh   # (sh allows for var substitution of BACKEND_URI)
+      - sh
       - -c
       - mlflow server
         --host 0.0.0.0
         --port 5000
-        --backend-store-uri $${BACKEND_URI}
-        --artifacts-destination ${DEFAULT_ARTIFACT_ROOT}
+        --backend-store-uri postgresql://${DB_USER}:${DB_PW}@db:5432/${DB_NAME}
+        --artifacts-destination s3://${S3_BUCKET}/
         --gunicorn-opts "--timeout 180 --log-level debug --access-logfile -"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
   db:
     image: postgres:15-bullseye
@@ -42,22 +48,31 @@ services:
       - POSTGRES_PASSWORD=${DB_PW}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-p", "5432", "-U", "${DB_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
 
-  minio:
+  s3:
     image: quay.io/minio/minio:RELEASE.2023-06-09T07-32-12Z
     restart: unless-stopped
     networks:
       - mlflow_network
-    expose:
-      - 9000
     ports:
-      - ${MINIO_PORT}:9090
+      - ${MINIO_PORT_UI}:9090
+      - ${MINIO_PORT_BACKEND}:9000
     environment:
-      - MINIO_ROOT_USER=${S3_ACCESS_KEY_ID}
-      - MINIO_ROOT_PASSWORD=${S3_SECRET_ACCESS_KEY}
+      - MINIO_ROOT_USER=${AWS_ACCESS_KEY_ID}
+      - MINIO_ROOT_PASSWORD=${AWS_SECRET_ACCESS_KEY}
     volumes:
       - minio_data:/data
     command: server /data --console-address ":9090"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
 
   # Automatically create a default bucket when the container starts
   defaultbucket:
@@ -65,12 +80,13 @@ services:
     networks:
       - mlflow_network
     depends_on:
-      - minio
+      s3:
+        condition: service_healthy
     entrypoint: >
       /bin/sh -c "
-        until (/usr/bin/mc alias set minio http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD}) do echo 'try to create buckets...' && sleep 1; done;
-        /usr/bin/mc mb minio/${MINIO_MLFLOW_BUCKET};
-        /usr/bin/mc anonymous list minio/${MINIO_MLFLOW_BUCKET};
+        until (/usr/bin/mc alias set minio http://s3:9000 ${AWS_ACCESS_KEY_ID} ${AWS_SECRET_ACCESS_KEY}) do echo 'try to create buckets...' && sleep 1; done;
+        /usr/bin/mc mb minio/${S3_BUCKET};
+        /usr/bin/mc anonymous list minio/${S3_BUCKET};
         exit 0;
       "
 
