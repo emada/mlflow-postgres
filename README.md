@@ -1,4 +1,4 @@
-# Docker containers with MLflow integrated with Postgres and MinIO on Ubuntu 22.04
+# Docker containers with MLflow integrated with Postgres and MinIO
 
 ##
 MLflow tracking server is configured following [Scenario 5: MLflow Tracking Server enabled with proxied artifact storage access](https://mlflow.org/docs/2.4.1/tracking.html#scenario-5-mlflow-tracking-server-enabled-with-proxied-artifact-storage-access). This allows us to use MLflow without worrying about MinIO credentials.
