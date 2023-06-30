@@ -7,10 +7,10 @@ After=docker.service
 Type=simple
 WorkingDirectory=/etc/docker/compose/mlflow
 
-ExecStartPre=/usr/bin/docker compose down
+ExecStartPre=/usr/bin/docker compose down --remove-orphans
 LoadCredential=.env:/etc/docker/compose/mlflow/.env
-ExecStart=/usr/bin/docker compose --env-file=${CREDENTIALS_DIRECTORY}/.env up --remove-orphans
-ExecStop=/usr/bin/docker compose down
+ExecStart=/usr/bin/docker compose --env-file=${CREDENTIALS_DIRECTORY}/.env up --build
+ExecStop=/usr/bin/docker compose down --remove-orphans
 ExecReload=/usr/bin/docker compose restart
 
 [Install]

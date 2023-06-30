@@ -26,5 +26,5 @@ systemctl enable mlflow
 
 echo "I'll start MLflow now."
 systemctl start mlflow
-echo "It'll take a couple of minutes to load the service as the system will pull and build necesary docker images."
+echo "It'll take a couple of minutes to load the service as the system will pull and build the necessary docker images."
 echo "Use 'journalctl -fu mlflow' to see MLflow's installation status."
